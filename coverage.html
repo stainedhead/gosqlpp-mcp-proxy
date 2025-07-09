@@ -1,0 +1,432 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>config: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/your-org/go-sqlpp-mcp-proxy/internal/config/config.go (29.8%)</option>
+				
+				<option value="file1">github.com/your-org/go-sqlpp-mcp-proxy/main.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package config
+
+import (
+        "fmt"
+        "os"
+
+        flag "github.com/spf13/pflag"
+        "github.com/spf13/viper"
+)
+
+// Config represents the application configuration
+type Config struct {
+        Transport string `mapstructure:"transport" yaml:"transport" json:"transport" toml:"transport"`
+        Port      int    `mapstructure:"port" yaml:"port" json:"port" toml:"port"`
+        XferPort  int    `mapstructure:"xfer-port" yaml:"xfer-port" json:"xfer-port" toml:"xfer-port"`
+        ExePath   string `mapstructure:"exe-path" yaml:"exe-path" json:"exe-path" toml:"exe-path"`
+}
+
+// Flags represents command-line flags
+type Flags struct {
+        ConfigFile *string
+        Transport  *string
+        Port       *int
+        XferPort   *int
+        ExePath    *string
+}
+
+// DefaultConfig returns a Config struct with default values
+func DefaultConfig() *Config <span class="cov8" title="1">{
+        return &amp;Config{
+                Transport: "stdio",
+                Port:      8099,
+                XferPort:  8891,
+                ExePath:   "./mcp_sqlpp",
+        }
+}</span>
+
+// ParseFlags parses command-line flags and returns a Flags struct
+func ParseFlags() *Flags <span class="cov0" title="0">{
+        flags := &amp;Flags{
+                ConfigFile: flag.String("config", "", "Path to config file (yaml/json/toml)"),
+                Transport:  flag.StringP("transport", "t", "", "Transport mode: stdio or http"),
+                Port:       flag.IntP("port", "p", 0, "Port to listen on (HTTP mode)"),
+                XferPort:   flag.IntP("xfer-port", "x", 0, "Port where mcp_sqlpp is running (HTTP mode)"),
+                ExePath:    flag.StringP("exe-path", "e", "", "Path to the mcp_sqlpp executable"),
+        }
+        flag.Parse()
+        return flags
+}</span>
+
+// LoadConfig loads configuration from multiple sources with proper precedence:
+// 1. Command-line flags (highest priority)
+// 2. Environment variables
+// 3. Configuration file
+// 4. Default values (lowest priority)
+func LoadConfig(flags *Flags) (*Config, error) <span class="cov0" title="0">{
+        // Set default values
+        defaults := DefaultConfig()
+        viper.SetDefault("transport", defaults.Transport)
+        viper.SetDefault("port", defaults.Port)
+        viper.SetDefault("xfer-port", defaults.XferPort)
+        viper.SetDefault("exe-path", defaults.ExePath)
+
+        // Bind environment variables with automatic env var name mapping
+        viper.SetEnvPrefix("MCP_PROXY")
+        viper.AutomaticEnv()
+
+        // Explicitly bind environment variables for kebab-case config keys
+        viper.BindEnv("transport", "MCP_PROXY_TRANSPORT")
+        viper.BindEnv("port", "MCP_PROXY_PORT")
+        viper.BindEnv("xfer-port", "MCP_PROXY_XFER_PORT")
+        viper.BindEnv("exe-path", "MCP_PROXY_EXE_PATH")
+
+        // Load config file if provided
+        if *flags.ConfigFile != "" </span><span class="cov0" title="0">{
+                viper.SetConfigFile(*flags.ConfigFile)
+        }</span> else<span class="cov0" title="0"> {
+                // Look for default config files in current directory
+                viper.SetConfigName("mcp_sqlpp_proxy")
+                viper.SetConfigType("yaml") // Default type, but will try others
+                viper.AddConfigPath(".")
+                viper.AddConfigPath("./config")
+                viper.AddConfigPath("/etc/mcp-proxy")
+        }</span>
+
+        // Read config file and handle errors appropriately
+        <span class="cov0" title="0">if err := viper.ReadInConfig(); err != nil </span><span class="cov0" title="0">{
+                if *flags.ConfigFile != "" </span><span class="cov0" title="0">{
+                        // If a specific config file was requested but not found, that's an error
+                        return nil, fmt.Errorf("failed to read config file '%s': %w", *flags.ConfigFile, err)
+                }</span>
+                // If no specific config file was requested, it's okay if default config doesn't exist
+                // We'll just use defaults and environment variables
+        }
+
+        // Override config values with command-line flags (flags take highest precedence)
+        <span class="cov0" title="0">if *flags.Transport != "" </span><span class="cov0" title="0">{
+                viper.Set("transport", *flags.Transport)
+        }</span>
+        <span class="cov0" title="0">if *flags.Port != 0 </span><span class="cov0" title="0">{
+                viper.Set("port", *flags.Port)
+        }</span>
+        <span class="cov0" title="0">if *flags.XferPort != 0 </span><span class="cov0" title="0">{
+                viper.Set("xfer-port", *flags.XferPort)
+        }</span>
+        <span class="cov0" title="0">if *flags.ExePath != "" </span><span class="cov0" title="0">{
+                viper.Set("exe-path", *flags.ExePath)
+        }</span>
+
+        // Unmarshal configuration into struct
+        <span class="cov0" title="0">var config Config
+        if err := viper.Unmarshal(&amp;config); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+        }</span>
+
+        // Validate configuration
+        <span class="cov0" title="0">if err := ValidateConfig(&amp;config); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("invalid configuration: %w", err)
+        }</span>
+
+        <span class="cov0" title="0">return &amp;config, nil</span>
+}
+
+// ValidateConfig validates the configuration values
+func ValidateConfig(config *Config) error <span class="cov8" title="1">{
+        // Validate transport mode
+        if config.Transport != "stdio" &amp;&amp; config.Transport != "http" </span><span class="cov8" title="1">{
+                return fmt.Errorf("invalid transport mode '%s': must be 'stdio' or 'http'", config.Transport)
+        }</span>
+
+        // Validate ports for HTTP mode
+        <span class="cov8" title="1">if config.Transport == "http" </span><span class="cov8" title="1">{
+                if config.Port &lt;= 0 || config.Port &gt; 65535 </span><span class="cov8" title="1">{
+                        return fmt.Errorf("invalid port %d: must be between 1 and 65535", config.Port)
+                }</span>
+                <span class="cov8" title="1">if config.XferPort &lt;= 0 || config.XferPort &gt; 65535 </span><span class="cov0" title="0">{
+                        return fmt.Errorf("invalid xfer-port %d: must be between 1 and 65535", config.XferPort)
+                }</span>
+                <span class="cov8" title="1">if config.Port == config.XferPort </span><span class="cov8" title="1">{
+                        return fmt.Errorf("port (%d) and xfer-port (%d) cannot be the same", config.Port, config.XferPort)
+                }</span>
+        }
+
+        // Validate executable path exists for stdio mode
+        <span class="cov8" title="1">if config.Transport == "stdio" </span><span class="cov8" title="1">{
+                if config.ExePath == "" </span><span class="cov8" title="1">{
+                        return fmt.Errorf("exe-path cannot be empty for stdio transport mode")
+                }</span>
+                // Check if executable exists and is executable
+                <span class="cov8" title="1">if _, err := os.Stat(config.ExePath); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                        return fmt.Errorf("executable not found at path '%s'", config.ExePath)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// GenerateExampleConfig creates an example configuration file with default values and comments
+func GenerateExampleConfig(filename string) error <span class="cov8" title="1">{
+        exampleContent := `# MCP SQLPP Proxy Configuration
+# This file demonstrates all available configuration options with their default values.
+# You can use YAML, JSON, or TOML format for configuration files.
+
+# Transport mode: "stdio" or "http"
+# - stdio: Communicates via standard input/output (good for command-line tools)
+# - http: Acts as HTTP proxy (good for web applications and services)
+transport: stdio
+
+# Port to listen on when using HTTP transport mode
+# Only used when transport is set to "http"
+# Default: 8099
+port: 8099
+
+# Port where the target mcp_sqlpp server is running (HTTP mode only)
+# This is where the proxy will forward HTTP requests
+# Only used when transport is set to "http"  
+# Default: 8891
+xfer-port: 8891
+
+# Path to the mcp_sqlpp executable
+# Can be absolute path or relative to current working directory
+# Examples:
+#   - ./mcp_sqlpp (relative path, default)
+#   - /usr/local/bin/mcp_sqlpp (absolute path)
+#   - ../gosqlpp-mcp-server/gosqlpp-mcp-server (relative to another directory)
+# Default: ./mcp_sqlpp
+exe-path: ./mcp_sqlpp
+
+# Environment Variable Overrides:
+# All configuration options can also be set via environment variables:
+# - MCP_PROXY_TRANSPORT=http
+# - MCP_PROXY_PORT=8080
+# - MCP_PROXY_XFER_PORT=8891
+# - MCP_PROXY_EXE_PATH=/usr/local/bin/mcp_sqlpp
+
+# Command-line flags take the highest precedence and will override 
+# both environment variables and config file values.
+`
+
+        return os.WriteFile(filename, []byte(exampleContent), 0644)
+}</span>
+
+// String returns a string representation of the configuration
+func (c *Config) String() string <span class="cov8" title="1">{
+        return fmt.Sprintf("Config{Transport: %s, Port: %d, XferPort: %d, ExePath: %s}",
+                c.Transport, c.Port, c.XferPort, c.ExePath)
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "bufio"
+        "fmt"
+        "io"
+        "log"
+        "net/http"
+        "os"
+        "os/exec"
+        "time"
+
+        "github.com/your-org/go-sqlpp-mcp-proxy/internal/config"
+)
+
+func main() <span class="cov0" title="0">{
+        // Parse command-line flags
+        flags := config.ParseFlags()
+
+        // Load configuration from all sources
+        cfg, err := config.LoadConfig(flags)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Configuration error: %v", err)
+        }</span>
+
+        // Create a unique log file for each run using timestamp and PID
+        <span class="cov0" title="0">logFileName := fmt.Sprintf("mcp_sqlpp_proxy_%d_%d.log", os.Getpid(), time.Now().UnixNano())
+        logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Fatalf("Failed to open log file: %v", err)
+        }</span>
+        <span class="cov0" title="0">defer logFile.Close()
+
+        logger := log.New(logFile, "", log.LstdFlags)
+        logger.Printf("Starting MCP SQLPP Proxy with configuration: %s", cfg.String())
+
+        switch cfg.Transport </span>{
+        case "stdio":<span class="cov0" title="0">
+                logger.Printf("Starting in stdio mode with exe-path: %s", cfg.ExePath)
+                runStdioProxy(cfg.ExePath, logger)</span>
+        case "http":<span class="cov0" title="0">
+                logger.Printf("Starting in http mode on port %d, forwarding to localhost:%d", cfg.Port, cfg.XferPort)
+                runHTTPProxy(cfg.Port, cfg.XferPort, logger)</span>
+        default:<span class="cov0" title="0">
+                logger.Fatalf("Unknown transport: %s", cfg.Transport)</span>
+        }
+}
+
+func runStdioProxy(exePath string, logger *log.Logger) <span class="cov0" title="0">{
+        cmd := exec.Command(exePath, "-t", "stdio")
+        mcpIn, _ := cmd.StdinPipe()
+        mcpOut, _ := cmd.StdoutPipe()
+        cmd.Stderr = os.Stderr
+
+        if err := cmd.Start(); err != nil </span><span class="cov0" title="0">{
+                logger.Fatalf("Failed to start mcp_sqlpp at '%s': %v", exePath, err)
+        }</span>
+
+        <span class="cov0" title="0">go func() </span><span class="cov0" title="0">{
+                scanner := bufio.NewScanner(os.Stdin)
+                for scanner.Scan() </span><span class="cov0" title="0">{
+                        line := scanner.Text()
+                        logger.Printf("[IN] %s", line)
+                        io.WriteString(mcpIn, line+"\n")
+                }</span>
+        }()
+
+        <span class="cov0" title="0">scanner := bufio.NewScanner(mcpOut)
+        for scanner.Scan() </span><span class="cov0" title="0">{
+                line := scanner.Text()
+                logger.Printf("[OUT] %s", line)
+                fmt.Println(line)
+        }</span>
+
+        <span class="cov0" title="0">cmd.Wait()</span>
+}
+
+func runHTTPProxy(listenPort, xferPort int, logger *log.Logger) <span class="cov0" title="0">{
+        http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) </span><span class="cov0" title="0">{
+                logger.Printf("[HTTP IN] %s %s", r.Method, r.URL)
+                // Read request body
+                body, _ := io.ReadAll(r.Body)
+                logger.Printf("[HTTP IN BODY] %s", string(body))
+
+                // Forward to mcp_sqlpp HTTP server
+                url := fmt.Sprintf("http://localhost:%d%s", xferPort, r.URL.Path)
+                req, err := http.NewRequest(r.Method, url, r.Body)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Printf("[HTTP ERROR] %v", err)
+                        w.WriteHeader(http.StatusInternalServerError)
+                        return
+                }</span>
+                <span class="cov0" title="0">req.Header = r.Header
+
+                client := &amp;http.Client{}
+                resp, err := client.Do(req)
+                if err != nil </span><span class="cov0" title="0">{
+                        logger.Printf("[HTTP ERROR] %v", err)
+                        w.WriteHeader(http.StatusBadGateway)
+                        return
+                }</span>
+                <span class="cov0" title="0">defer resp.Body.Close()
+
+                respBody, _ := io.ReadAll(resp.Body)
+                logger.Printf("[HTTP OUT] %d %s", resp.StatusCode, string(respBody))
+
+                for k, v := range resp.Header </span><span class="cov0" title="0">{
+                        for _, vv := range v </span><span class="cov0" title="0">{
+                                w.Header().Add(k, vv)
+                        }</span>
+                }
+                <span class="cov0" title="0">w.WriteHeader(resp.StatusCode)
+                w.Write(respBody)</span>
+        })
+
+        <span class="cov0" title="0">logger.Printf("Listening on http://localhost:%d", listenPort)
+        http.ListenAndServe(fmt.Sprintf(":%d", listenPort), nil)</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/your-org/go-sqlpp-mcp-proxy/internal/config"
+	"gosqlpp-mcp-proxy/internal/config"
 )
 
 func main() {

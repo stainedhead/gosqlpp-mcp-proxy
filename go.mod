@@ -1,4 +1,4 @@
-module github.com/your-org/go-sqlpp-mcp-proxy
+module gosqlpp-mcp-proxy
 
 go 1.24.5
 
