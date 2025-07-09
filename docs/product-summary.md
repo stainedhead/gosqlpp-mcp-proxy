@@ -76,10 +76,16 @@ mcp_sqlpp_proxy --transport http --port 8080 --exe-path /usr/local/bin/mcp_sqlpp
 - Process isolation and resource management
 
 ### 📊 **Advanced Logging & Monitoring**
-- Structured logging with configuration traceability
-- Unique log files per session (`mcp_sqlpp_proxy_<pid>_<timestamp>.log`)
-- Request/response correlation for comprehensive traffic analysis
-- Configuration logging for audit trails
+- **Structured Logging System**: Semantic log levels with dedicated logging types:
+  - `[STARTUP]` - Application initialization and configuration tracing
+  - `[INFO]` - General operational information
+  - `[IN]`/`[OUT]` - Stdio traffic with full message correlation
+  - `[HTTP IN]`/`[HTTP OUT]`/`[HTTP ERROR]` - HTTP transaction logging
+  - `[DEBUG]` - Detailed debugging information
+  - `[ERROR]`/`[FATAL]` - Error conditions and critical failures
+- **Session Tracking**: Unique log files per run (`mcp_sqlpp_proxy_<pid>_<timestamp>.log`)
+- **Request/Response Correlation**: Complete traffic analysis with body logging
+- **Configuration Audit**: Full configuration logging for compliance and debugging
 
 ### 🔧 **Flexible Deployment Options**
 - Containerized deployment with environment variable support

@@ -289,16 +289,40 @@ spec:
 
 ## Logging
 
+### Structured Logging System
+The proxy uses a modern, structured logging system with dedicated logging types for different operations:
+
+- **Startup**: `[STARTUP]` - Application initialization and configuration
+- **Info**: `[INFO]` - General informational messages  
+- **Traffic**: `[IN]`/`[OUT]` - Stdio mode traffic logging
+- **HTTP**: `[HTTP IN]`/`[HTTP OUT]`/`[HTTP ERROR]` - HTTP request/response logging
+- **Debug**: `[DEBUG]` - Detailed debugging information
+- **Error**: `[ERROR]` - Error conditions and failures
+- **Fatal**: `[FATAL]` - Critical errors that cause application exit
+
 ### Log File Format
 Each run creates a unique log file: `mcp_sqlpp_proxy_<pid>_<timestamp>.log`
 
 **Example filename:** `mcp_sqlpp_proxy_12345_1704067200000000000.log`
 
-### Log Content
-- **Stdio Mode**: All input/output messages with `[IN]` and `[OUT]` prefixes
-- **HTTP Mode**: HTTP requests/responses with `[HTTP IN]`, `[HTTP OUT]`, and `[HTTP ERROR]` prefixes
-- **Timestamps**: All entries include precise timestamps
-- **Request/Response Bodies**: Full content logged for debugging
+### Log Content Examples
+**Stdio Mode:**
+```
+2025/01/01 12:00:00 [STARTUP] Starting MCP SQLPP Proxy with configuration: Config{Transport: stdio, ExePath: ./mcp_sqlpp}
+2025/01/01 12:00:00 [INFO] Starting in stdio mode with exe-path: ./mcp_sqlpp
+2025/01/01 12:00:01 [IN] {"jsonrpc":"2.0","method":"ping","id":1}
+2025/01/01 12:00:01 [OUT] {"jsonrpc":"2.0","result":"pong","id":1}
+```
+
+**HTTP Mode:**
+```
+2025/01/01 12:00:00 [STARTUP] Starting MCP SQLPP Proxy with configuration: Config{Transport: http, Port: 8099, XferPort: 8891}
+2025/01/01 12:00:00 [INFO] Starting in http mode on port 8099, forwarding to localhost:8891
+2025/01/01 12:00:00 [INFO] Listening on http://localhost:8099
+2025/01/01 12:00:01 [HTTP IN] POST /query
+2025/01/01 12:00:01 [HTTP IN BODY] {"query":"SELECT * FROM users"}
+2025/01/01 12:00:01 [HTTP OUT] 200 {"result":[{"id":1,"name":"John"}]}
+```
 
 ### Log Analysis
 ```bash
@@ -306,10 +330,14 @@ Each run creates a unique log file: `mcp_sqlpp_proxy_<pid>_<timestamp>.log`
 ls -la mcp_sqlpp_proxy_*.log | tail -5
 
 # Search for errors
-grep "ERROR" mcp_sqlpp_proxy_*.log
+grep "\[ERROR\]\|\[FATAL\]" mcp_sqlpp_proxy_*.log
 
 # Monitor live traffic
 tail -f mcp_sqlpp_proxy_$(pgrep mcp_sqlpp_proxy)_*.log
+
+# Filter by log type
+grep "\[HTTP IN\]" mcp_sqlpp_proxy_*.log  # HTTP requests only
+grep "\[STARTUP\]" mcp_sqlpp_proxy_*.log  # Startup messages only
 ```
 
 ## Development
@@ -317,20 +345,28 @@ tail -f mcp_sqlpp_proxy_$(pgrep mcp_sqlpp_proxy)_*.log
 ### Project Structure
 ```
 gosqlpp-mcp-proxy/
-├── main.go                    # Main application code
-├── main_test.go              # Basic tests
-├── go.mod                    # Go module definition
-├── go.sum                    # Dependency checksums
-├── README.md                 # This file
-├── CONTRIBUTING.md           # Contribution guidelines
-├── LICENSE                   # MIT license
-├── .gitignore               # Git ignore rules
-├── config.example.yaml      # Example configuration file
+├── main.go                         # Main application code
+├── main_test.go                    # Integration tests
+├── main_logging_test.go            # Logging integration tests
+├── go.mod                          # Go module definition
+├── go.sum                          # Dependency checksums
+├── README.md                       # This file
+├── CONTRIBUTING.md                 # Contribution guidelines
+├── LICENSE                         # MIT license
+├── .gitignore                      # Git ignore rules
+├── mcp_sqlpp_proxy.yaml           # Default configuration file
+├── internal/                       # Internal packages
+│   ├── config/                     # Configuration management
+│   │   ├── config.go               # Config types and logic
+│   │   └── config_test.go          # Config tests
+│   └── logging/                    # Structured logging system
+│       ├── logging.go              # Logger implementation
+│       └── logging_test.go         # Logging tests
 ├── docs/
-│   └── product.md           # Detailed product documentation
+│   └── product-summary.md          # Product documentation
 ├── .github/
 │   └── copilot-instructions.md
-└── .vscode/                 # VS Code settings
+└── .vscode/                        # VS Code settings
 ```
 
 ### Building
@@ -357,9 +393,12 @@ go build -o test_binary main.go && rm test_binary
 ```
 
 ### Dependencies
-- **Viper**: Configuration management
+- **Viper**: Configuration management (YAML/JSON/TOML support)
 - **pflag**: POSIX-compliant command-line flags
-- **Standard Library**: HTTP server, process management, logging
+- **Standard Library**: HTTP server, process management, file I/O
+- **Internal Packages**: 
+  - `internal/config`: Type-safe configuration with validation
+  - `internal/logging`: Structured logging with semantic log levels
 
 ## Contributing
 
