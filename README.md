@@ -35,6 +35,7 @@ The Model Context Protocol (MCP) enables standardized communication between appl
 
 - **Dual Transport Support**: Both stdio and HTTP transport modes
 - **Flexible Configuration**: Command-line flags, environment variables, and config files (YAML/JSON/TOML)
+- **Configurable Executable Path**: Specify the path to mcp_sqlpp executable via flag or config
 - **Comprehensive Logging**: All traffic logged to unique files per run with timestamps
 - **Zero-Configuration**: Works out of the box with sensible defaults
 - **Production Ready**: Robust error handling and graceful shutdown
@@ -43,25 +44,16 @@ The Model Context Protocol (MCP) enables standardized communication between appl
 ## Prerequisites
 
 - **Go 1.24.5 or later** (for building from source)
-- **sqlpp MCP server** installed and accessible at `/Users/mma0975/.sqlpp/mcp_sqlpp` (or modify the path in `main.go`)
+- **sqlpp MCP server** installed and accessible
 - **Network access** to the target sqlpp server (for HTTP mode)
-
-> **Note**: The current implementation expects the sqlpp MCP server to be located at `/Users/mma0975/.sqlpp/mcp_sqlpp`. You may need to update this path in `main.go` line 67 to match your installation.
 
 ## Installation
 
-### Option 1: Download Pre-built Binary
-```bash
-# Download the latest release (replace with actual release URL)
-curl -L -o mcp_sqlpp_proxy https://github.com/mma0975/go-sqlpp-mcp-proxy/releases/latest/download/mcp_sqlpp_proxy
-chmod +x mcp_sqlpp_proxy
-```
-
-### Option 2: Build from Source
+### Option 1: Build from Source
 ```bash
 # Clone the repository
-git clone https://github.com/mma0975/go-sqlpp-mcp-proxy.git
-cd go-sqlpp-mcp-proxy
+git clone https://github.com/your-org/gosqlpp-mcp-proxy.git
+cd gosqlpp-mcp-proxy
 
 # Build the binary
 go build -o mcp_sqlpp_proxy main.go
@@ -70,48 +62,60 @@ go build -o mcp_sqlpp_proxy main.go
 ./mcp_sqlpp_proxy --help
 ```
 
-### Option 3: Install with Go
+### Option 2: Install with Go
 ```bash
-go install github.com/mma0975/go-sqlpp-mcp-proxy@latest
+go install github.com/your-org/gosqlpp-mcp-proxy@latest
 ```
 
 ## Quick Start
 
 ### Setup sqlpp Path
-Before using the proxy, ensure the sqlpp MCP server path is correct:
+The proxy requires access to the sqlpp MCP server executable. You can specify the path in several ways:
 
-1. **Find your sqlpp installation:**
+1. **Using command-line flag (recommended):**
+   ```bash
+   ./mcp_sqlpp_proxy --exe-path /path/to/your/mcp_sqlpp
+   ```
+
+2. **Using configuration file:**
+   ```yaml
+   # config.yaml
+   exe-path: /path/to/your/mcp_sqlpp
+   ```
+
+3. **Using environment variable:**
+   ```bash
+   export EXE_PATH=/path/to/your/mcp_sqlpp
+   ./mcp_sqlpp_proxy
+   ```
+
+4. **Find your sqlpp installation:**
    ```bash
    which mcp_sqlpp
-   # or
-   find /usr -name "mcp_sqlpp" 2>/dev/null
-   find /opt -name "mcp_sqlpp" 2>/dev/null
-   find ~ -name "mcp_sqlpp" 2>/dev/null
-   ```
-
-2. **Update the path in main.go if needed:**
-   ```bash
-   # Edit line 67 in main.go to match your sqlpp installation path
-   sed -i 's|/Users/mma0975/.sqlpp/mcp_sqlpp|/your/actual/path/to/mcp_sqlpp|g' main.go
-   ```
-
-3. **Rebuild if you made changes:**
-   ```bash
-   go build -o mcp_sqlpp_proxy main.go
+   # or search common locations
+   find /usr /opt ~ -name "mcp_sqlpp" 2>/dev/null
    ```
 
 ### 1. Stdio Mode (Default)
 Perfect for command-line integrations and simple debugging:
 
 ```bash
+# Using default executable path (./mcp_sqlpp)
 ./mcp_sqlpp_proxy --transport stdio
+
+# Specifying custom executable path
+./mcp_sqlpp_proxy --transport stdio --exe-path /usr/local/bin/mcp_sqlpp
 ```
 
 ### 2. HTTP Mode
 Ideal for web applications and HTTP-based integrations:
 
 ```bash
+# Basic HTTP proxy
 ./mcp_sqlpp_proxy --transport http --port 8080 --xfer-port 8891
+
+# With custom executable path
+./mcp_sqlpp_proxy --transport http --port 8080 --xfer-port 8891 --exe-path /usr/local/bin/mcp_sqlpp
 ```
 
 ### 3. With Configuration File
@@ -130,6 +134,7 @@ For complex setups and production deployments:
 | `--transport` | `-t` | `stdio` | Transport mode: `stdio` or `http` |
 | `--port` | `-p` | `8099` | Port to listen on (HTTP mode only) |
 | `--xfer-port` | `-x` | `8891` | Port where sqlpp MCP server is running |
+| `--exe-path` | `-e` | `./mcp_sqlpp` | Path to the mcp_sqlpp executable |
 | `--config` | | | Path to configuration file |
 | `--help` | `-h` | | Show help message |
 
@@ -141,6 +146,7 @@ All configuration options can be set via environment variables:
 export TRANSPORT=http
 export PORT=8080
 export XFER_PORT=8891
+export EXE_PATH=/usr/local/bin/mcp_sqlpp
 ./mcp_sqlpp_proxy
 ```
 
@@ -153,6 +159,7 @@ Create a `config.yaml` file for persistent configuration:
 transport: http
 port: 8080
 xfer-port: 8891
+exe-path: /usr/local/bin/mcp_sqlpp
 ```
 
 Supported formats: YAML, JSON, TOML
@@ -162,7 +169,8 @@ Supported formats: YAML, JSON, TOML
 {
   "transport": "http",
   "port": 8080,
-  "xfer-port": 8891
+  "xfer-port": 8891,
+  "exe-path": "/usr/local/bin/mcp_sqlpp"
 }
 ```
 
@@ -171,6 +179,7 @@ Supported formats: YAML, JSON, TOML
 transport = "http"
 port = 8080
 xfer-port = 8891
+exe-path = "/usr/local/bin/mcp_sqlpp"
 ```
 
 ## Usage Examples
@@ -179,8 +188,8 @@ xfer-port = 8891
 Monitor all MCP traffic during development:
 
 ```bash
-# Terminal 1: Start the proxy
-./mcp_sqlpp_proxy --transport stdio
+# Terminal 1: Start the proxy with custom executable path
+./mcp_sqlpp_proxy --transport stdio --exe-path /usr/local/bin/mcp_sqlpp
 
 # Terminal 2: Monitor logs in real-time
 tail -f mcp_sqlpp_proxy_*.log
@@ -357,7 +366,8 @@ The current HTTP proxy implementation has a limitation where the request body is
 ```bash
 # Check if sqlpp is installed and accessible
 which mcp_sqlpp
-# Update the path in main.go line 67 if necessary
+# Use the --exe-path flag to specify the correct path
+./mcp_sqlpp_proxy --exe-path /path/to/mcp_sqlpp
 ```
 
 **Issue: "Port already in use"**
@@ -414,8 +424,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/mma0975/go-sqlpp-mcp-proxy/issues)
-- **Discussions**: [Community discussions and Q&A](https://github.com/mma0975/go-sqlpp-mcp-proxy/discussions)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/your-org/gosqlpp-mcp-proxy/issues)
+- **Discussions**: [Community discussions and Q&A](https://github.com/your-org/gosqlpp-mcp-proxy/discussions)
 
 ---
 

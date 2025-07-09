@@ -27,7 +27,7 @@ This project adheres to a code of conduct that we expect all contributors to fol
    ```
 3. **Add the upstream remote**:
    ```bash
-   git remote add upstream https://github.com/mma0975/go-sqlpp-mcp-proxy.git
+   git remote add upstream https://github.com/your-org/go-sqlpp-mcp-proxy.git
    ```
 
 ## Development Setup

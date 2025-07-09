@@ -10,4 +10,7 @@ port: 8099
 # Port where the sqlpp MCP server is running (HTTP mode only)
 xfer-port: 8891
 
+# Path to the mcp_sqlpp executable
+exe-path: ./mcp_sqlpp
+
 # Additional configuration options can be added here as the project evolves

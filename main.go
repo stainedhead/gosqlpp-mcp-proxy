@@ -1,42 +1,39 @@
 package main
+
 import (
-   "bufio"
-   "fmt"
-   "io"
-   "log"
-   "net/http"
-   "os"
-   "os/exec"
-   "time"
-   "github.com/spf13/viper"
-   flag "github.com/spf13/pflag"
+	"bufio"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"os/exec"
+	"time"
+
+	flag "github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
-
 func main() {
-	// Add config file flag
-   configFile := flag.String("config", "", "Path to config file (yaml/json/toml)")
-   transport := flag.StringP("transport", "t", "stdio", "Transport mode: stdio or http")
-   port := flag.IntP("port", "p", 8099, "Port to listen on (HTTP mode)")
-   xferPort := flag.IntP("xfer-port", "x", 8891, "Port where mcp_sqlpp is running (HTTP mode)")
-   flag.Parse()
+	// Command line flags
+	configFile := flag.String("config", "", "Path to config file (yaml/json/toml)")
+	transport := flag.StringP("transport", "t", "", "Transport mode: stdio or http")
+	port := flag.IntP("port", "p", 0, "Port to listen on (HTTP mode)")
+	xferPort := flag.IntP("xfer-port", "x", 0, "Port where mcp_sqlpp is running (HTTP mode)")
+	exePath := flag.StringP("exe-path", "e", "", "Path to the mcp_sqlpp executable")
+	flag.Parse()
 
-   viper.SetDefault("transport", "stdio")
-   viper.SetDefault("port", 8099)
-   viper.SetDefault("xfer-port", 8891)
+	// Set config defaults
+	viper.SetDefault("transport", "stdio")
+	viper.SetDefault("port", 8099)
+	viper.SetDefault("xfer-port", 8891)
+	viper.SetDefault("exe-path", "./mcp_sqlpp")
 
-   viper.BindEnv("transport")
-   viper.BindEnv("port")
-   viper.BindEnv("xfer-port")
-
-   viper.BindPFlag("transport", flag.Lookup("transport"))
-   viper.BindPFlag("port", flag.Lookup("port"))
-   viper.BindPFlag("xfer-port", flag.Lookup("xfer-port"))
-
-   // Use flag values
-   viper.Set("transport", *transport)
-   viper.Set("port", *port)
-   viper.Set("xfer-port", *xferPort)
+	// Bind environment variables
+	viper.BindEnv("transport")
+	viper.BindEnv("port")
+	viper.BindEnv("xfer-port")
+	viper.BindEnv("exe-path")
 
 	// Load config file if provided
 	if *configFile != "" {
@@ -45,11 +42,35 @@ func main() {
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
 	}
-	viper.ReadInConfig() // Ignore error if no config file
 
+	// Read config file and handle errors
+	if err := viper.ReadInConfig(); err != nil {
+		if *configFile != "" {
+			// If a specific config file was requested but not found, that's an error
+			log.Fatalf("Failed to read config file '%s': %v", *configFile, err)
+		}
+		// If no specific config file was requested, it's okay if default config doesn't exist
+	}
+
+	// Override config values with command line flags (flags take precedence)
+	if *transport != "" {
+		viper.Set("transport", *transport)
+	}
+	if *port != 0 {
+		viper.Set("port", *port)
+	}
+	if *xferPort != 0 {
+		viper.Set("xfer-port", *xferPort)
+	}
+	if *exePath != "" {
+		viper.Set("exe-path", *exePath)
+	}
+
+	// Get final configuration values
 	transportVal := viper.GetString("transport")
 	portVal := viper.GetInt("port")
 	xferPortVal := viper.GetInt("xfer-port")
+	exePathVal := viper.GetString("exe-path")
 
 	// Create a unique log file for each run using timestamp and PID
 	logFileName := fmt.Sprintf("mcp_sqlpp_proxy_%d_%d.log", os.Getpid(), time.Now().UnixNano())
@@ -63,8 +84,8 @@ func main() {
 
 	switch transportVal {
 	case "stdio":
-		logger.Println("Starting in stdio mode")
-		runStdioProxy(logger)
+		logger.Printf("Starting in stdio mode with exe-path: %s", exePathVal)
+		runStdioProxy(exePathVal, logger)
 	case "http":
 		logger.Printf("Starting in http mode on port %d, forwarding to localhost:%d", portVal, xferPortVal)
 		runHTTPProxy(portVal, xferPortVal, logger)
@@ -73,14 +94,14 @@ func main() {
 	}
 }
 
-func runStdioProxy(logger *log.Logger) {
-	cmd := exec.Command("/Users/mma0975/.sqlpp/mcp_sqlpp", "-t", "stdio")
+func runStdioProxy(exePath string, logger *log.Logger) {
+	cmd := exec.Command(exePath, "-t", "stdio")
 	mcpIn, _ := cmd.StdinPipe()
 	mcpOut, _ := cmd.StdoutPipe()
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Start(); err != nil {
-		logger.Fatalf("Failed to start mcp_sqlpp: %v", err)
+		logger.Fatalf("Failed to start mcp_sqlpp at '%s': %v", exePath, err)
 	}
 
 	go func() {
