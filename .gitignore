@@ -5,6 +5,17 @@
 *.so
 *.dylib
 
+# Project specific
+mcp_sqlpp_proxy
+mcp_sqlpp_proxy_*
+*.log
+
+# Config files (optional, uncomment if you want to ignore them)
+# config.yaml
+# config.json
+# config.toml
+
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -33,12 +44,4 @@ go.work
 ehthumbs.db
 Thumbs.db
 
-# Project specific
-mcp_sqlpp_proxy
-mcp_sqlpp_proxy_*
-*.log
 
-# Config files (optional, uncomment if you want to ignore them)
-# config.yaml
-# config.json
-# config.toml

@@ -10,67 +10,18 @@ import (
 	"os/exec"
 	"time"
 
-	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
+	"github.com/your-org/go-sqlpp-mcp-proxy/internal/config"
 )
 
 func main() {
-	// Command line flags
-	configFile := flag.String("config", "", "Path to config file (yaml/json/toml)")
-	transport := flag.StringP("transport", "t", "", "Transport mode: stdio or http")
-	port := flag.IntP("port", "p", 0, "Port to listen on (HTTP mode)")
-	xferPort := flag.IntP("xfer-port", "x", 0, "Port where mcp_sqlpp is running (HTTP mode)")
-	exePath := flag.StringP("exe-path", "e", "", "Path to the mcp_sqlpp executable")
-	flag.Parse()
+	// Parse command-line flags
+	flags := config.ParseFlags()
 
-	// Set config defaults
-	viper.SetDefault("transport", "stdio")
-	viper.SetDefault("port", 8099)
-	viper.SetDefault("xfer-port", 8891)
-	viper.SetDefault("exe-path", "./mcp_sqlpp")
-
-	// Bind environment variables
-	viper.BindEnv("transport")
-	viper.BindEnv("port")
-	viper.BindEnv("xfer-port")
-	viper.BindEnv("exe-path")
-
-	// Load config file if provided
-	if *configFile != "" {
-		viper.SetConfigFile(*configFile)
-	} else {
-		viper.SetConfigName("config")
-		viper.AddConfigPath(".")
+	// Load configuration from all sources
+	cfg, err := config.LoadConfig(flags)
+	if err != nil {
+		log.Fatalf("Configuration error: %v", err)
 	}
-
-	// Read config file and handle errors
-	if err := viper.ReadInConfig(); err != nil {
-		if *configFile != "" {
-			// If a specific config file was requested but not found, that's an error
-			log.Fatalf("Failed to read config file '%s': %v", *configFile, err)
-		}
-		// If no specific config file was requested, it's okay if default config doesn't exist
-	}
-
-	// Override config values with command line flags (flags take precedence)
-	if *transport != "" {
-		viper.Set("transport", *transport)
-	}
-	if *port != 0 {
-		viper.Set("port", *port)
-	}
-	if *xferPort != 0 {
-		viper.Set("xfer-port", *xferPort)
-	}
-	if *exePath != "" {
-		viper.Set("exe-path", *exePath)
-	}
-
-	// Get final configuration values
-	transportVal := viper.GetString("transport")
-	portVal := viper.GetInt("port")
-	xferPortVal := viper.GetInt("xfer-port")
-	exePathVal := viper.GetString("exe-path")
 
 	// Create a unique log file for each run using timestamp and PID
 	logFileName := fmt.Sprintf("mcp_sqlpp_proxy_%d_%d.log", os.Getpid(), time.Now().UnixNano())
@@ -81,16 +32,17 @@ func main() {
 	defer logFile.Close()
 
 	logger := log.New(logFile, "", log.LstdFlags)
+	logger.Printf("Starting MCP SQLPP Proxy with configuration: %s", cfg.String())
 
-	switch transportVal {
+	switch cfg.Transport {
 	case "stdio":
-		logger.Printf("Starting in stdio mode with exe-path: %s", exePathVal)
-		runStdioProxy(exePathVal, logger)
+		logger.Printf("Starting in stdio mode with exe-path: %s", cfg.ExePath)
+		runStdioProxy(cfg.ExePath, logger)
 	case "http":
-		logger.Printf("Starting in http mode on port %d, forwarding to localhost:%d", portVal, xferPortVal)
-		runHTTPProxy(portVal, xferPortVal, logger)
+		logger.Printf("Starting in http mode on port %d, forwarding to localhost:%d", cfg.Port, cfg.XferPort)
+		runHTTPProxy(cfg.Port, cfg.XferPort, logger)
 	default:
-		logger.Fatalf("Unknown transport: %s", transportVal)
+		logger.Fatalf("Unknown transport: %s", cfg.Transport)
 	}
 }
 

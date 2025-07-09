@@ -38,14 +38,21 @@ The MCP SQLPP Proxy (`mcp_sqlpp_proxy`) is a professional-grade Go-based middlew
 - **Dependencies**: Minimal external dependencies using industry-standard libraries (Viper, pflag)
 - **Deployment**: Single binary deployment with zero external dependencies
 
-### Configuration System
+### Enterprise Configuration Architecture
 ```yaml
-# Multi-format configuration support (YAML, JSON, TOML)
+# Professional multi-format configuration (YAML, JSON, TOML)
+# Supports multiple file locations and environment-specific overrides
 transport: stdio          # Transport protocol selection
-port: 8099                # HTTP listener port
+port: 8099                # HTTP listener port  
 xfer-port: 8891          # Upstream SQLPP server port
 exe-path: ./mcp_sqlpp    # Configurable executable path
 ```
+
+**Configuration Sources (Priority Order):**
+1. Command-line flags (highest)
+2. Environment variables (`MCP_PROXY_*`)
+3. Configuration files (auto-discovery)
+4. Built-in defaults (fallback)
 
 ### Command-Line Interface
 ```bash
@@ -55,20 +62,30 @@ mcp_sqlpp_proxy --transport http --port 8080 --exe-path /usr/local/bin/mcp_sqlpp
 
 ## Key Features & Capabilities
 
+### ⚙️ **Enterprise Configuration Management**
+- **Structured Configuration**: Type-safe configuration with automatic validation
+- **Multi-Source Priority**: Command-line → Environment → Config File → Defaults
+- **Auto-Discovery**: Intelligent config file location detection
+- **Format Flexibility**: YAML, JSON, and TOML support with seamless switching
+- **Environment Variables**: Prefixed environment variables (`MCP_PROXY_*`) for container deployments
+- **Validation Engine**: Comprehensive configuration validation with detailed error reporting
+
 ### 🛡️ **Production-Ready Reliability**
 - Robust error handling and graceful failure modes
-- Configurable timeout and retry mechanisms
+- Configuration validation preventing runtime errors
 - Process isolation and resource management
 
 ### 📊 **Advanced Logging & Monitoring**
-- Structured logging with configurable verbosity levels
+- Structured logging with configuration traceability
 - Unique log files per session (`mcp_sqlpp_proxy_<pid>_<timestamp>.log`)
 - Request/response correlation for comprehensive traffic analysis
+- Configuration logging for audit trails
 
 ### 🔧 **Flexible Deployment Options**
-- Containerized deployment support
+- Containerized deployment with environment variable support
 - System service integration capabilities
 - Cloud-native architecture compatibility
+- Multi-environment configuration management
 
 ### 🎯 **Developer Experience**
 - Intuitive configuration with sensible defaults

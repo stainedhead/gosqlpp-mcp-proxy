@@ -140,31 +140,45 @@ For complex setups and production deployments:
 
 ### Environment Variables
 
-All configuration options can be set via environment variables:
+All configuration options can be set via environment variables with the `MCP_PROXY_` prefix:
 
 ```bash
-export TRANSPORT=http
-export PORT=8080
-export XFER_PORT=8891
-export EXE_PATH=/usr/local/bin/mcp_sqlpp
+export MCP_PROXY_TRANSPORT=http
+export MCP_PROXY_PORT=8080
+export MCP_PROXY_XFER_PORT=8891
+export MCP_PROXY_EXE_PATH=/usr/local/bin/mcp_sqlpp
 ./mcp_sqlpp_proxy
 ```
 
 ### Configuration File
 
-Create a `config.yaml` file for persistent configuration:
+The proxy supports multiple configuration file formats and locations:
 
+**File Names (searched in order):**
+- `mcp_sqlpp_proxy.yaml` (recommended)
+- `mcp_sqlpp_proxy.json`
+- `mcp_sqlpp_proxy.toml`
+
+**Search Paths:**
+- Current directory (`.`)
+- `./config/`
+- `/etc/mcp-proxy/`
+
+**Or specify a custom config file:**
+```bash
+./mcp_sqlpp_proxy --config /path/to/custom-config.yaml
+```
+
+#### YAML Configuration (Recommended)
 ```yaml
-# config.yaml
+# mcp_sqlpp_proxy.yaml
 transport: http
 port: 8080
 xfer-port: 8891
 exe-path: /usr/local/bin/mcp_sqlpp
 ```
 
-Supported formats: YAML, JSON, TOML
-
-**JSON Example:**
+#### JSON Configuration
 ```json
 {
   "transport": "http",
@@ -174,12 +188,36 @@ Supported formats: YAML, JSON, TOML
 }
 ```
 
-**TOML Example:**
+#### TOML Configuration
 ```toml
 transport = "http"
 port = 8080
 xfer-port = 8891
 exe-path = "/usr/local/bin/mcp_sqlpp"
+```
+
+### Configuration Precedence
+
+Configuration values are applied in the following order (highest to lowest priority):
+
+1. **Command-line flags** (highest priority)
+2. **Environment variables** (`MCP_PROXY_*`)
+3. **Configuration file**
+4. **Built-in defaults** (lowest priority)
+
+### Default Configuration File
+
+Use the included example configuration:
+
+```bash
+# Copy the example config
+cp mcp_sqlpp_proxy.yaml my-config.yaml
+
+# Edit as needed
+vim my-config.yaml
+
+# Use your custom config
+./mcp_sqlpp_proxy --config my-config.yaml
 ```
 
 ## Usage Examples
